@@ -46,13 +46,16 @@
         ];
       in
       {
-        devShell = pkgs.mkShell {
-          buildInputs = packages;
+        devShell = pkgs.mkShell
+          {
+            buildInputs = packages;
 
-          LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath libraries;
-          WEBKIT_DISABLE_COMPOSITING_MODE = 1;
-          GDK_BACKEND = "x11";
-        };
+            LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath libraries;
+            WEBKIT_DISABLE_COMPOSITING_MODE = 1;
+            GDK_BACKEND = "x11";
+
+            RUST_LOG = "trace";
+          };
       });
 }
 

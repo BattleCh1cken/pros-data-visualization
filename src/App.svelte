@@ -2,14 +2,18 @@
   import "@skeletonlabs/skeleton/themes/theme-crimson.css";
   import "@skeletonlabs/skeleton/styles/skeleton.css";
 
-  import { AppShell, AppBar } from "@skeletonlabs/skeleton";
+  import { Toast, toastStore } from "@skeletonlabs/skeleton";
+
+  import { AppShell } from "@skeletonlabs/skeleton";
 
   import "./app.css";
 
   import Bar from "./lib/Bar.svelte";
-  import BtControl from "./lib/BtControl.svelte";
+  import BtControl from "./lib/BtControl/Drawer.svelte";
   import Graph from "./lib/Graph.svelte";
 </script>
+
+<Toast />
 
 <BtControl />
 

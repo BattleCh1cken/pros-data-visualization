@@ -6,8 +6,11 @@
     drawerStore,
   } from "@skeletonlabs/skeleton";
   import type { DrawerSettings } from "@skeletonlabs/skeleton";
+  import { invoke } from "@tauri-apps/api";
 
   import ArrowLeft from "svelte-material-icons/ArrowLeft.svelte";
+
+  import SearchButton from "./SearchButton.svelte";
 
   let closeDrawer = () => {
     drawerStore.close();
@@ -42,7 +45,7 @@
   <h3 class="h3 text-center">Bluetooth Control</h3>
 
   <div class="flex flex-col align-center justify-center m-4 gap-4">
-    <button type="button" class="btn variant-filled-primary">Search</button>
+    <SearchButton />
     <div class="card p-4 flex flex-col">
       {#each brains as brain, index}
         <div class="card p-2">

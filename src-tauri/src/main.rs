@@ -1,15 +1,30 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-// Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
+use std::sync::Mutex;
+
+use btleplug::platform::{Adapter, Peripheral};
+
+mod brain;
+
+struct Test(i32);
+
 #[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+fn test(state: tauri::State<'_, brain::State>) {
+    state.0.lock().unwrap().connected = true;
+    println!("{:?}", state);
 }
 
 fn main() {
+    env_logger::init();
+
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![greet])
+        .manage(brain::State(Default::default()))
+        .invoke_handler(tauri::generate_handler![
+            brain::find_brains,
+            brain::setup,
+            test
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
