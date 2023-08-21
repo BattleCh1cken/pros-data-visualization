@@ -2,14 +2,19 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/master";
     flake-utils.url = "github:numtide/flake-utils";
+    rust-overlay.url = "github:oxalica/rust-overlay";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, flake-utils, rust-overlay, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
+        overlays = [ (import rust-overlay) ];
+        pkgs = import nixpkgs
+          {
+            inherit system overlays;
+          };
 
-        libraries = with pkgs;[
+        libraries = with pkgs; [
           webkitgtk
           gtk3
           cairo
@@ -32,16 +37,11 @@
           webkitgtk
           librsvg
 
-          cargo
-          rustc
-
+          rust-bin.nightly.latest.default
           rust-analyzer
-          rustfmt
-          nodePackages_latest.prettier
           nodePackages_latest.svelte-language-server
 
           nodejs
-
           cargo-tauri
         ];
       in
@@ -54,7 +54,7 @@
             WEBKIT_DISABLE_COMPOSITING_MODE = 1;
             GDK_BACKEND = "x11";
 
-            RUST_LOG = "trace";
+            #RUST_LOG = "trace";
           };
       });
 }

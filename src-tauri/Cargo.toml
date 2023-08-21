@@ -22,6 +22,7 @@ env_logger = { version = "0.10.0", features = ["color"] }
 log = "0.4.20"
 futures = "0.3.28"
 thiserror = "1.0.47"
+uuid = "1.4.1"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

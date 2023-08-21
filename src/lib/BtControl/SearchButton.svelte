@@ -13,7 +13,7 @@
   const fetchData = async () => {
     try {
       isFetching = true;
-      await invoke("setup");
+      await invoke("find_brains");
     } catch (error) {
       isFetching = false;
       const toastSettings: ToastSettings = {

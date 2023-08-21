@@ -2,7 +2,7 @@
   import "@skeletonlabs/skeleton/themes/theme-crimson.css";
   import "@skeletonlabs/skeleton/styles/skeleton.css";
 
-  import { Toast, toastStore } from "@skeletonlabs/skeleton";
+  import { Toast } from "@skeletonlabs/skeleton";
 
   import { AppShell } from "@skeletonlabs/skeleton";
 
