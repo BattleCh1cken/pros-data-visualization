@@ -1,7 +1,9 @@
 <script lang="ts">
   import { AppBar } from "@skeletonlabs/skeleton";
-  import { drawerStore } from "@skeletonlabs/skeleton";
+  import { getDrawerStore } from "@skeletonlabs/skeleton";
   import Menu from "svelte-material-icons/Menu.svelte";
+
+  const drawerStore = getDrawerStore();
 
   let openDrawer = () => {
     drawerStore.open();

@@ -3,7 +3,7 @@
     ListBox,
     ListBoxItem,
     Drawer,
-    drawerStore,
+    getDrawerStore,
   } from "@skeletonlabs/skeleton";
   import type { DrawerSettings } from "@skeletonlabs/skeleton";
   import { afterUpdate, onDestroy } from "svelte";
@@ -12,8 +12,9 @@
 
   import ArrowLeft from "svelte-material-icons/ArrowLeft.svelte";
 
-  import SearchButton from "./SearchButton.svelte";
   import ConnectButton from "./ConnectButton.svelte";
+
+  let drawerStore = getDrawerStore();
 
   let closeDrawer = () => {
     drawerStore.close();

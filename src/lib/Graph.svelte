@@ -1,34 +1,47 @@
 <script lang="ts">
-  import { Chart } from "chart.js/auto";
-  import { onMount } from "svelte";
+  import { Chart, registerables } from "chart.js";
+  import { afterUpdate } from "svelte";
 
-  function createChart() {
-    let ctx = document.getElementById("myChart");
-    let chart = new Chart(ctx, {
+  Chart.register(...registerables);
+
+  export let rows: string[] = [];
+  export let chartData: number[][] = [];
+
+  let chart: Chart;
+  let chartElement: HTMLCanvasElement;
+
+  afterUpdate(() => {
+    let labels = chartData[0];
+    let datasets = chartData.slice(1, chartData.length).map((array, index) => {
+      return {
+        label: rows[index],
+        data: array,
+        pointRadius: 0,
+        spanGaps: true,
+      };
+    });
+
+    let data = {
+      labels,
+      datasets,
+    };
+
+    if (chart) chart.destroy();
+    chart = new Chart(chartElement, {
       type: "line",
-      data: {
-        labels: ["Red", "Blue", "Yellow", "Green", "Purple", "Orange"],
-        datasets: [
-          {
-            label: "# of Votes",
-            data: [12, 19, 3, 5, 2, 3],
-            borderWidth: 1,
-          },
-        ],
-      },
+      data,
       options: {
-        scales: {
-          y: {
-            beginAtZero: true,
+        animation: false,
+        plugins: {
+          decimation: {
+            enabled: true,
           },
         },
       },
     });
-  }
-
-  onMount(createChart);
+  });
 </script>
 
 <div>
-  <canvas id="myChart" />
+  <canvas bind:this={chartElement} />
 </div>

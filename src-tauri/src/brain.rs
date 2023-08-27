@@ -147,7 +147,7 @@ pub async fn authenticate(code: String, state: tauri::State<'_, BtState>) -> Res
 
     let code = convert_code(code);
 
-    println!("{:?}", code);
+    println!("input: {:?}", code);
 
     //b'\x02\x03\x08\x01'
     let characteristic = find_characteristic(&brain, CHAR3_UUID).unwrap();
@@ -156,7 +156,17 @@ pub async fn authenticate(code: String, state: tauri::State<'_, BtState>) -> Res
         .await
         .unwrap();
 
-    println!("connected");
+    let response = brain
+        .read(&find_characteristic(&brain, CHAR3_UUID).unwrap())
+        .await
+        .unwrap();
+    println!("echo: {:?}", response);
+    if response == code {
+        println!("connected");
+        state.0.lock().unwrap().connected = true;
+    } else {
+        println!("wrong code you nerd");
+    }
 
     Ok(())
 }

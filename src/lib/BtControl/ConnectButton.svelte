@@ -33,38 +33,6 @@
   }
 </script>
 
-<!--click connect button-->
-<!--check if brain is accepting connection request-->
-<!--display code on brain-->
-<!--display input box-->
-<!--check if input is valid-->
-
-<!--{#if is_code_valid(input_code) == InputStatus.Invalid}-->
-<!--<input-->
-<!--class="input input-error"-->
-<!--title="Code"-->
-<!--type="text"-->
-<!--placeholder="input code"-->
-<!--bind:value={input_code}-->
-<!--/>-->
-<!--{:else if is_code_valid(input_code) == InputStatus.Valid}-->
-<!--<input-->
-<!--class="input input-success"-->
-<!--title="Code"-->
-<!--type="text"-->
-<!--placeholder="input code"-->
-<!--bind:value={input_code}-->
-<!--/>-->
-<!--{:else}-->
-<!--<input-->
-<!--class="input"-->
-<!--title="Code"-->
-<!--type="text"-->
-<!--placeholder="input code"-->
-<!--bind:value={input_code}-->
-<!--/>-->
-<!--{/if}-->
-
 <button
   type="button"
   class="btn variant-filled-primary"

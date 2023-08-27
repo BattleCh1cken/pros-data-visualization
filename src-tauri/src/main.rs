@@ -1,8 +1,13 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-#![feature(async_closure)]
+
+use tauri::Manager;
 
 mod brain;
+mod loggingv2;
+
+#[cfg(test)]
+mod tests;
 
 fn main() {
     env_logger::init();
@@ -15,9 +20,14 @@ fn main() {
             brain::disconnect
         ])
         .setup(|app| {
-            let handle = app.handle();
-            tauri::async_runtime::spawn(async {
-                brain::find_brain_loop(handle).await;
+            let handle1 = app.handle();
+            let handle2 = app.handle();
+
+            tauri::async_runtime::spawn(async move {
+                brain::find_brain_loop(handle1).await.unwrap();
+            });
+            tauri::async_runtime::spawn(async move {
+                loggingv2::logging_loop(handle2).await;
             });
 
             Ok(())
