@@ -1,43 +1,42 @@
 <script lang="ts">
+  import { getToastStore, type ToastSettings } from "@skeletonlabs/skeleton";
   import { invoke } from "@tauri-apps/api";
+  const toastStore = getToastStore();
 
   export let index: number;
 
   let isConnecting = false;
-  let isAuthenticating = false;
-  let isCodeValid = false;
-
-  let input_code: number;
-
-  enum InputStatus {
-    Valid,
-    Invalid,
-    Empty,
-  }
-
-  function is_code_valid(code: number) {
-    if (code == null) {
-      return InputStatus.Empty;
-    } else if (code.toString().length == 4) {
-      return InputStatus.Valid;
-    } else {
-      return InputStatus.Invalid;
-    }
-  }
 
   async function connect(index: number) {
-    console.log("connecting");
-    await invoke("connect", { index });
-    let code = prompt("Input code");
-    await invoke("authenticate", { code });
+    try {
+      isConnecting = true;
+      console.log("connecting");
+      await invoke("connect", { index });
+      let code = prompt("Input code");
+      await invoke("authenticate", { code });
+      isConnecting = false;
+    } catch (err: any) {
+      isConnecting = false;
+      const t: ToastSettings = {
+        message: err,
+        background: "variant-filled-error",
+      };
+      toastStore.trigger(t);
+    }
   }
 </script>
 
-<button
-  type="button"
-  class="btn variant-filled-primary"
-  on:click={() => connect(index)}>Connect</button
->
+{#if !isConnecting}
+  <button
+    type="button"
+    class="btn variant-filled-primary"
+    on:click={() => connect(index)}
+  >
+    Connect
+  </button>
+{:else}
+  <button type="button" class="btn variant-filled-surface"> Connect </button>
+{/if}
 
 <!--{#if isConnecting}{:else if isAuthenticating}{:else}{/if}-->
 

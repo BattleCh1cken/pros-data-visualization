@@ -1,87 +1,113 @@
+use btleplug::api::{CharPropFlags, Manager as _, Peripheral as _};
+use futures::stream::StreamExt;
 use rand::random;
-use rand::rngs::ThreadRng;
-use rand::{distributions::Uniform, Rng};
-use serde::ser::SerializeStruct;
-use std::mem::size_of;
-use std::thread::sleep;
-use std::{error::Error, time::Duration};
-use tauri::{AppHandle, Manager};
+use std::collections::VecDeque;
+use std::error::Error;
+use std::{time::Duration, vec};
+use tauri::{AppHandle, Manager, State};
 
-#[derive(Clone, Debug, Default, serde::Deserialize)]
+use crate::brain;
 
-pub struct ChartData(Vec<ChartDataSlice>);
-
-impl serde::Serialize for ChartData {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let p: Vec<i32> = self.0.iter().map(|data| data.p).collect();
-        let i: Vec<i32> = self.0.iter().map(|data| data.i).collect();
-        let d: Vec<i32> = self.0.iter().map(|data| data.d).collect();
-        let time: Vec<u32> = self.0.iter().map(|data| data.time).collect();
-        let mut state = serializer.serialize_struct("ChartData", 4)?;
-        state.serialize_field("p", &p)?;
-        state.serialize_field("i", &i)?;
-        state.serialize_field("d", &d)?;
-        state.serialize_field("time", &time)?;
-        state.end()
-    }
-}
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct ChartData(pub Vec<Vec<f32>>);
 
 impl ChartData {
-    fn flush_into(&mut self, other: &mut ChartData, limit: usize) {
-        other.0.extend(self.0.clone()); // This is so memory inefficient and idgaf
-        if other.0.len() > limit {
-            let end = other.0.len();
-            let beggining = end - limit;
-            other.0 = other.0[beggining..end].to_vec();
+    pub fn push(&mut self, input: Vec<f32>) {
+        if self.0.len() < input.len() {
+            let length_diff = input.len() - self.0.len();
+            for _ in 0..length_diff {
+                self.0.push(vec![])
+            }
         }
-        self.0 = vec![]
+        for (index, number) in input.iter().enumerate() {
+            self.0[index].push(*number);
+        }
+    }
+
+    pub fn flush_into(&mut self, other: &mut ChartData, limit: usize) {
+        if self.0.len() > other.0.len() {
+            let length_diff = self.0.len() - other.0.len();
+            for _ in 0..length_diff {
+                other.0.push(vec![])
+            }
+        }
+
+        for (index, vec) in self.0.iter().enumerate() {
+            other.0[index].extend(vec);
+            if other.0[index].len() > limit {
+                let end = other.0[index].len();
+                let beggining = end - limit;
+                other.0[index] = other.0[index][beggining..end].to_vec()
+            }
+        }
+
+        self.0 = vec![];
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-pub struct ChartDataSlice {
-    p: i32,
-    i: i32,
-    d: i32,
-    time: u32,
-}
+pub fn decode(data: Vec<u8>) -> Result<Vec<f32>, Box<dyn Error>> {
+    let mut buffer = String::new();
 
-impl ChartDataSlice {
-    pub fn random(rand: &mut ThreadRng, millis: u32) -> Self {
-        Self {
-            p: rand.gen_range(-127..127),
-            i: rand.gen_range(-127..127),
-            d: rand.gen_range(-127..127),
-            time: millis,
-        }
+    for byte in data {
+        buffer.push(byte as char);
     }
+    buffer = buffer.replace("\n", "");
+
+    let data: Result<Vec<f32>, Box<dyn Error>> = buffer
+        .split(",")
+        .map(|s| {
+            s.trim()
+                .parse::<f32>()
+                .map_err(|e| Box::new(e) as Box<dyn Error>)
+        })
+        .collect();
+
+    data
 }
 
-pub async fn logging_loop(handle: AppHandle) -> Result<(), Box<dyn Error>> {
-    let mut millis: u32 = 0;
-    let mut rng = rand::thread_rng();
-    let buffer_length = 20;
-    let data_length = 1000;
-
-    let mut global_chart_data = ChartData::default();
-    let mut buffer_chart_data = ChartData::default();
-
+pub async fn logging_loop(handle: AppHandle) {
+    let mut chart_data = ChartData::default();
+    let mut chart_data_buffer = ChartData::default();
+    let state: State<'_, brain::BtState> = handle.state();
+    let buffer_size = 20;
+    let data_size = 1000;
     loop {
-        let slice = ChartDataSlice::random(&mut rng, millis);
-        buffer_chart_data.0.push(slice);
+        if state.0.lock().unwrap().connected {
+            let brain = state.0.lock().unwrap().connected_brain.clone().unwrap();
 
-        if buffer_chart_data.0.len() > buffer_length {
-            buffer_chart_data.flush_into(&mut global_chart_data, data_length);
-            println!("{:#?}", global_chart_data.0.len());
+            for characteristic in brain.characteristics() {
+                if characteristic.uuid == brain::CHAR2_UUID
+                    && characteristic.properties.contains(CharPropFlags::NOTIFY)
+                {
+                    println!("Subscribing to characteristic {:?}", characteristic.uuid);
 
+                    brain.subscribe(&characteristic).await.unwrap();
+
+                    let mut notification_stream = brain.notifications().await.unwrap();
+
+                    while let Some(data) = notification_stream.next().await {
+                        match decode(data.value) {
+                            Ok(data) => {
+                                chart_data_buffer.push(data);
+                                if chart_data_buffer.0[0].len() > buffer_size {
+                                    println!("flushing buffer");
+                                    chart_data_buffer.flush_into(&mut chart_data, data_size);
+                                    handle
+                                        .emit_all("chart_data_update", chart_data.clone())
+                                        .unwrap();
+                                    println!("Chart data:{:#?}", chart_data);
+                                }
+                            }
+                            Err(_) => println!("error >:("),
+                        };
+                    }
+                }
+            }
             handle
-                .emit_all("chart_data_update", global_chart_data.clone())
+                .emit_all("chart_data_update", chart_data.clone())
                 .unwrap();
+        } else {
+            std::thread::sleep(Duration::from_secs(1));
         }
-        millis += 20;
-        sleep(Duration::from_millis(20));
     }
 }

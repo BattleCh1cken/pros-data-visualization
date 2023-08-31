@@ -12,9 +12,8 @@
   import BtControl from "./lib/BtControl/Drawer.svelte";
   //import Graph from "./lib/PidGraph.svelte";
   import Graph from "./lib/Graph.svelte";
-  import TestGraph from "./lib/TestGraph.svelte";
 
-  let data: number[][] = [[1], [1], [1]];
+  let data: number[][];
 
   afterUpdate(() => {
     listen<number[][]>("chart_data_update", (event) => {
@@ -31,5 +30,5 @@
   <svelte:fragment slot="header">
     <Bar />
   </svelte:fragment>
-  <Graph rows={["Left", "Right"]} chartData={data} />
+  <Graph rows={["P", "I", "D"]} chartData={data} />
 </AppShell>

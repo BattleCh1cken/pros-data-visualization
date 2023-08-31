@@ -4,18 +4,18 @@
 
   Chart.register(...registerables);
 
-  export let rows: string[] = [];
-  export let chartData: number[][] = [];
+  export let rows: string[] = [""];
+  export let chartData: number[][] = [[0], [0]];
 
   let chart: Chart;
   let chartElement: HTMLCanvasElement;
 
   afterUpdate(() => {
     let labels = chartData[0];
-    let datasets = chartData.slice(1, chartData.length).map((array, index) => {
+    let datasets = rows.map((name, index) => {
       return {
-        label: rows[index],
-        data: array,
+        label: name,
+        data: chartData[index + 1],
         pointRadius: 0,
         spanGaps: true,
       };
@@ -42,6 +42,6 @@
   });
 </script>
 
-<div>
+<div class="card p-2">
   <canvas bind:this={chartElement} />
 </div>

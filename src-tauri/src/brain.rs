@@ -24,6 +24,7 @@ pub struct BtStateData {
     pub brains: Vec<Peripheral>,
     pub connected_brain: Option<Peripheral>,
     pub connected: bool,
+    pub auto_connect: bool,
 }
 
 impl Default for BtStateData {
@@ -32,6 +33,7 @@ impl Default for BtStateData {
             brains: vec![],
             connected_brain: None,
             connected: false,
+            auto_connect: false,
         }
     }
 }
@@ -64,7 +66,7 @@ pub async fn find_brain_loop(handle: AppHandle) -> Result<(), String> {
 
     let adapters = match manager.adapters().await {
         Ok(central) => central,
-        Err(_) => return Err("Your computer does not support bluetooth".to_string()), // TODO: emit an error event here
+        Err(_) => return Err("Your computer does not support bluetooth".to_string()),
     };
 
     let central = adapters.into_iter().nth(0).unwrap();
@@ -92,6 +94,9 @@ pub async fn find_brain_loop(handle: AppHandle) -> Result<(), String> {
 
                 handle.state::<BtState>().0.lock().unwrap().brains = brains;
             }
+            CentralEvent::DeviceDisconnected(id) => {
+                println!("device disconnected"); // TODO: update connected state
+            }
             _ => (),
         }
     }
@@ -113,10 +118,17 @@ pub async fn connect(index: usize, state: tauri::State<'_, BtState>) -> Result<(
     println!("{index}");
     let brain: &Peripheral = &state.0.lock().unwrap().brains.clone()[index];
 
-    brain.connect().await.unwrap();
-    brain.discover_services().await.unwrap();
+    brain.connect().await.map_err(|err| err.to_string())?;
 
-    let characteristic = find_characteristic(&brain, CHAR3_UUID).unwrap();
+    brain
+        .discover_services()
+        .await
+        .map_err(|err| err.to_string())?;
+
+    let characteristic = match find_characteristic(&brain, CHAR3_UUID) {
+        Some(characteristic) => characteristic,
+        None => return Err("Selected device probably isn't a brain".to_string()),
+    };
 
     brain
         .write(
@@ -160,12 +172,12 @@ pub async fn authenticate(code: String, state: tauri::State<'_, BtState>) -> Res
         .read(&find_characteristic(&brain, CHAR3_UUID).unwrap())
         .await
         .unwrap();
-    println!("echo: {:?}", response);
+
     if response == code {
         println!("connected");
         state.0.lock().unwrap().connected = true;
     } else {
-        println!("wrong code you nerd");
+        return Err("Invalid code".to_string());
     }
 
     Ok(())
